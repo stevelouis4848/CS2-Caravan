@@ -75,7 +75,12 @@ public class CS2CaravanAssign2 {
 
 	   //descending order
 	   //return StudentName2.compareTo(StudentName1);
-         }};       
+         }};
+        
+            @Override
+        public String toString() {
+            return "city1: " + city1+ " city2: " + city2 + " cost: "+ cost;
+        }
 
         @Override
         public int compareTo(Object t) {
@@ -108,6 +113,16 @@ public class CS2CaravanAssign2 {
         // Sorts the arrayList of roads from least to greatest cost
         Collections.sort(arrayListOfRoads, Road.roadCostComparator);
         
+        System.out.println("Cost Sorting:\n");
+        
+        arrayListOfRoads.forEach((str) -> {
+            System.out.println(str);
+            
+        }
+        );
+        
+        System.out.println("\n\n");
+       
         // For each possible # of wagons there's an atttempt to union the roads 
         for(int i = 1; i <= MAX_NUM_OF_WAGONS; i++){
                              
@@ -120,9 +135,14 @@ public class CS2CaravanAssign2 {
             /*  Once a network is succesully build, the number of wagons
                 involved is added to the output list to be printed later. */
             if(networkBuilder()){    
+                 System.out.printf("RoadBuilder %d successful\n\n", i);
                 outputList.add(i);
             }
-        }        
+            else{
+                System.out.printf("RoadBuilder %d not successful\n\n", i);
+            }
+        }
+        
         printSolution();       
     }
     
@@ -133,6 +153,7 @@ public class CS2CaravanAssign2 {
         
         // The parent array is reset for the current attempt.
         for(int i = 0; i <= numOfCities; i++){
+
             parentArray[i] = i;
         }
          
@@ -152,8 +173,18 @@ public class CS2CaravanAssign2 {
             }
         }
         
+        currNetworkList.forEach((str) -> {
+            System.out.println(str);
+        });
+        
+        for(int i = 1; i <= numOfCities; i++){
+            
+            System.out.printf("parentArray[%d] = %d\n", i, parentArray[i]);
+        }
+         
         // Checks if the newly build network is a valid network
-        if(!ifNetworkValid()){                        
+        if(!ifNetworkValid()){
+                         
             return false;
         }
         
@@ -163,12 +194,16 @@ public class CS2CaravanAssign2 {
     public static boolean ifUnionValid(){
         
         // Checks if the road being considered will create a cycle.
-        if(find(roadToCompare.getCity1()) == find(roadToCompare.getCity2())){           
+        if(find(roadToCompare.getCity1()) == find(roadToCompare.getCity2())){
+            
+            System.out.printf("Parents are equal to each other city1:%d city2:%d\n",roadToCompare.getCity1(),roadToCompare.getCity2());
             return false;
         }
         
         // Checks if the road being will not be able to suppirt the wagons.
-        if(roadToCompare.getWeigth() < currWeightLimit){           
+        if(roadToCompare.getWeigth() < currWeightLimit){
+            
+            System.out.printf("Road weigth limiit is too low currentWeightLimit:%f roadWeightLimit:%d \n", currWeightLimit, roadToCompare.getWeigth());
             return false;
         }
                
@@ -191,16 +226,23 @@ public class CS2CaravanAssign2 {
     
      public static boolean ifNetworkValid(){
          
+       double networkCost;
         // Checks if the network has (nodes - 1) number of edges. 
         if(currNetworkList.size() != numOfCities - 1){
+            
+            System.out.printf("Network failed notright amount roads\n");
             return false;
         }
        
         // Checks if the network cost is within the budget.
-        if(calculateCost() > BUDGET){
+        if((networkCost = calculateCost()) > BUDGET){
+
+            System.out.printf("Network failed cost over the budger budget:%d cost:%f \n", BUDGET, networkCost);
             return false;
         }
-             
+       
+        System.out.printf("Network  cost successful inline of the budget budget:%d cost:%f \n", BUDGET, networkCost);
+                       
         return true;
     }
      
@@ -224,13 +266,11 @@ public class CS2CaravanAssign2 {
     // Prints the size of the outputList followed by its contents.
     public static void printSolution(){
         
-        int outputSize = outputList.size();
-        
         //  Prints the size of the outputList.
-        System.out.printf("%d\n", outputSize);
+        System.out.printf("%d\n", outputList.size());
         
         //  Prints the contents of the outputList.
-        for(int i = 0; i < outputSize; i++ ){
+        for(int i = 0; i < outputList.size(); i++ ){
             
             System.out.printf("%d ", outputList.get(i));
         } 

@@ -1,3 +1,10 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package cs2caravanassign2;
+
 import java.util.Scanner;
 import java.util.Comparator;
 import java.util.ArrayList;
@@ -18,12 +25,7 @@ public class CS2CaravanAssign2 {
     public static double TOTAL_WEIGHT;
     public static double currWeightLimit;
     public static double currNumOfWagons;
-    public static int[] parentArray;
-    public static ArrayList<Road> arrayListOfRoads;
-    public static ArrayList<Road> currNetworkList;
-    public static ArrayList<Integer> outputList;
-    public static Road roadToCompare;
-        
+    
     private static class Road implements Comparable{
        
         private final int city1;
@@ -72,7 +74,7 @@ public class CS2CaravanAssign2 {
 
 	   //ascending order
 	   return cost1 - cost2;
-         }};       
+        }};       
 
         @Override
         public int compareTo(Object t) {
@@ -85,12 +87,14 @@ public class CS2CaravanAssign2 {
         
         numOfCities = input.nextInt();
         numOfRoads = input.nextInt();   
+             
+        ArrayList<Road> arrayListOfRoads = new ArrayList<>();      
+        ArrayList<Integer>outputList = new ArrayList<>();
+        int[] parentArray = new int[numOfCities + 1];
+        int[] rankArray = new int[numOfCities + 1];
        
-        arrayListOfRoads = new ArrayList<>();      
-        outputList = new ArrayList<>();
-        parentArray = new int[numOfCities + 1];
-        currNetworkList = new ArrayList<>();
-       
+        
+
         //Reads the information for the roads and stores the roads in an arrayList
         for(int i = 0; i < numOfRoads; i++){
         
@@ -104,7 +108,7 @@ public class CS2CaravanAssign2 {
         
         // Sorts the arrayList of roads from least to greatest cost
         Collections.sort(arrayListOfRoads, Road.roadCostComparator);
-        
+
         // For each possible # of wagons there's an atttempt to union the roads 
         for(int i = 1; i <= MAX_NUM_OF_WAGONS; i++){
                              
@@ -113,68 +117,93 @@ public class CS2CaravanAssign2 {
             /*  The Most amount of weight that a  wagon will need carry and a road
                 in the network must to be able to support.*/
             currWeightLimit = TOTAL_WEIGHT / currNumOfWagons;
+            
+            // The parent and rank arrays are reset for the current attempt.
+            for(int j = 0; j <= numOfCities; j++){
+                parentArray[j] = j;
+                rankArray[j] = 0;
+            }
         
             /*  Once a network is succesully build, the number of wagons
                 involved is added to the output list to be printed later. */
-            if(networkBuilder()){    
+            if(networkBuilder(arrayListOfRoads, outputList, parentArray, rankArray)){    
                 outputList.add(i);
             }
-        }        
-        printSolution();       
+        }   
+
+        printSolution(outputList);       
     }
     
-    public static boolean networkBuilder(){
+    public static boolean networkBuilder(ArrayList<Road> arrayListOfRoads, ArrayList<Integer> outputList,  int[] parentArray,
+        int[] rankArray){
         
         // The contents of the last network building attempt is cleared.
-        currNetworkList.clear();
+        ArrayList<Road> currNetworkList = new ArrayList<>();
+        double networkCost = 0;
+        Road roadToCompare;
         
-        // The parent array is reset for the current attempt.
-        for(int i = 0; i <= numOfCities; i++){
-            parentArray[i] = i;
-        }
-         
+       
+        // The cost of each roads in the network are sumed up.
+       
+        // The cost of the wagons is added to the network cost
+        networkCost = currNumOfWagons * COST_OF_WAGONS;
+       
         /* Each road is considered for the network in order of the lowest cost
             roads to the highest cost roads. */
-        for(int i = 0; i < numOfRoads && (currNetworkList.size() < numOfRoads -1 ); i++){
+
+        for(int i = 0; (i < numOfRoads) && (currNetworkList.size() < numOfCities -1 ); i++){
             
             // We retrieve the road being considered for the network.
             roadToCompare = arrayListOfRoads.get(i);
             
             /* If the road can be unioned into the network then it is
                 added to the network and the parrent array is updated */
-            if(ifUnionValid()){
+            if(ifUnionValid(roadToCompare, parentArray)){
 
                 currNetworkList.add(roadToCompare);
-                parentArray[roadToCompare.getCity1()] = find(roadToCompare.getCity2());
-            }
+                networkCost = networkCost + roadToCompare.getCost();
+               
+                if(rankArray[roadToCompare.getCity1()] < rankArray[roadToCompare.getCity2()]){
+                    
+                    parentArray[roadToCompare.getCity1()] = find(roadToCompare.getCity2(), parentArray);
+                }
+                else if(rankArray[roadToCompare.getCity1()] > rankArray[roadToCompare.getCity2()]){
+                    
+                    parentArray[roadToCompare.getCity2()] = find(roadToCompare.getCity1(), parentArray);
+                }
+                else{
+                    
+                    parentArray[roadToCompare.getCity1()] = find(roadToCompare.getCity2(), parentArray);
+                    rankArray[roadToCompare.getCity2()]++;
+                }
+                
+                if(networkCost > BUDGET){
+                    return false;
+                }
+            }        
         }
         
-        // Checks if the newly build network is a valid network
-        if(!ifNetworkValid()){                        
+        if(currNetworkList.size() < numOfCities - 1 ){
             return false;
         }
-        
+       
         return true;
     }
     
-    public static boolean ifUnionValid(){
+    public static boolean ifUnionValid( Road roadToCompare, int[] parentArray){
         
         // Checks if the road being considered will create a cycle.
-        if(find(roadToCompare.getCity1()) == find(roadToCompare.getCity2())){           
+        if(find(roadToCompare.getCity1(), parentArray) == find(roadToCompare.getCity2(), parentArray)){           
             return false;
         }
-        
         // Checks if the road being will not be able to suppirt the wagons.
-        if(roadToCompare.getWeigth() < currWeightLimit){           
-            return false;
-        }
-               
-        return true;
+        
+        return roadToCompare.getWeigth() >= currWeightLimit;
     }
     
     /*  Returns the root node in the network containing the node passed in,while
         implementing path compression. */
-    public static int find(int city){
+    public static int find(int city, int[] parentArray){
      
         if(parentArray[city] == city){
             return city;
@@ -183,43 +212,11 @@ public class CS2CaravanAssign2 {
         /*  Implementation of path compression to quicken runtime,recursively 
             sets the parents of the nodes in a network to the root node and
             returns the root node */
-        return parentArray[city] = find(parentArray[city]);         
-    }
-    
-     public static boolean ifNetworkValid(){
-         
-        // Checks if the network has (nodes - 1) number of edges. 
-        if(currNetworkList.size() != numOfCities - 1){
-            return false;
-        }
-       
-        // Checks if the network cost is within the budget.
-        if(calculateCost() > BUDGET){
-            return false;
-        }
-             
-        return true;
-    }
-     
-    // Calculates and returns the total cost of roads in the network and buying the wagons.
-    public static double calculateCost(){
-        
-       double networkCost = 0;
-       
-        // The cost of each roads in the network are sumed up.
-        for(int i = 0; i < currNetworkList.size(); i++ ){
-
-            networkCost = networkCost + currNetworkList.get(i).getCost();            
-        }
-       
-        // The cost of the wagons is added to the network cost
-        networkCost = networkCost + (currNumOfWagons * COST_OF_WAGONS);
-       
-        return networkCost;
+        return parentArray[city] = find(parentArray[city], parentArray);         
     }
     
     // Prints the size of the outputList followed by its contents.
-    public static void printSolution(){
+    public static void printSolution( ArrayList<Integer> outputList){
         
         int outputSize = outputList.size();
         
